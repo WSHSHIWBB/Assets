@@ -123,7 +123,7 @@ public class AssemblyObjectsModule : BaseModule
 {
     private const string LABOBJFILE = "AssemblyObjectJsonFile";
 
-    private Dictionary<int, JsonAssemblyObject> _ID_JsonLabObject_Dic = new Dictionary<int, JsonAssemblyObject>();
+    private Dictionary<int, JsonAssemblyObject> _ID_JsonAssembyObject_Dic = new Dictionary<int, JsonAssemblyObject>();
     public Dictionary<int, List<Transform>> _ID_TransformList_Dic = new Dictionary<int, List<Transform>>();
 
     private void SortDic(Dictionary<int, JsonAssemblyObject> dic)
@@ -163,7 +163,7 @@ public class AssemblyObjectsModule : BaseModule
             for (int i = 0; i < lines.Length - 1; ++i)
             {
                 JsonAssemblyObject jsonLabObject = JsonMapper.ToObject<JsonAssemblyObject>(lines[i]);
-                _ID_JsonLabObject_Dic.Add(jsonLabObject.ID, jsonLabObject);
+                _ID_JsonAssembyObject_Dic.Add(jsonLabObject.ID, jsonLabObject);
             }
             fs.Close();
             fs.Dispose();
@@ -207,7 +207,7 @@ public class AssemblyObjectsModule : BaseModule
 
     public bool IsJsonContainsID(int id)
     {
-        if (_ID_JsonLabObject_Dic.ContainsKey(id))
+        if (_ID_JsonAssembyObject_Dic.ContainsKey(id))
         {
             return true;
         }
@@ -233,7 +233,6 @@ public class AssemblyObjectsModule : BaseModule
 
     public Transform[] GetTransformsOfSameID(int id, Transform self)
     {
-
         if (!_ID_TransformList_Dic.ContainsKey(id))
         {
             return null;
@@ -246,7 +245,6 @@ public class AssemblyObjectsModule : BaseModule
                 newList.Add(_ID_TransformList_Dic[id][i]);
             }
             newList.Remove(self);
-
             return newList.ToArray();
         }
     }
@@ -277,8 +275,71 @@ public class AssemblyObjectsModule : BaseModule
 
     public Transform[] GetParentTransforms(int id)
     {
-        //to be finish
-        return null;
+        if(!IsJsonContainsID(id)||_ID_JsonAssembyObject_Dic[id].parentIDs==null)
+        {
+            return null;
+        }
+        List<Transform> list = new List<Transform>();
+        int[] parentIDs= _ID_JsonAssembyObject_Dic[id].parentIDs;
+        for(int i=0;i<parentIDs.Length;++i)
+        {
+            if(IsTransformContainsID(parentIDs[i]))
+            {
+                list.AddRange(_ID_TransformList_Dic[parentIDs[i]]);
+            }
+        }
+        if(list.Count==0)
+        {
+            return null;
+        }
+        else
+        {
+            return list.ToArray();
+        }  
+    }
+
+    public Transform[] GetAllHasPosParentTransforms(int id)
+    {
+        List<Transform> newTrans = new List<Transform>();
+        Transform[] parentTrans = GetParentTransforms(id);
+        if (parentTrans == null)
+        {
+            return null;
+        }
+        else
+        {
+            for (int i = 0; i < parentTrans.Length; ++i)
+            {
+                if(parentTrans[i].GetComponent<AssemblyObject>().IsHasChildPos(id))
+                {
+                    newTrans.Add(parentTrans[i]);
+                }
+            }
+            if(newTrans.Count==0)
+            {
+                //Debug.Log(id);
+                //Debug.Log(parentTrans[0].name);
+                return null;
+            }
+            else
+            {
+                return newTrans.ToArray();
+            }
+        }
+    }
+
+    public Transform GetOneHasPosParentTransform(int id)
+    {
+        Transform[] arry = GetAllHasPosParentTransforms(id);
+        if(arry==null)
+        {
+            return null;
+        }
+        else
+        {
+            Transform parent = RandomUtil.Array(arry);
+            return parent;
+        }
     }
 
     public Transform[] GetSingleWorldPosBrother(int id)
@@ -290,7 +351,7 @@ public class AssemblyObjectsModule : BaseModule
         }
 
         List<int> brotherIDs = new List<int>();
-        foreach (var pair in _ID_JsonLabObject_Dic)
+        foreach (var pair in _ID_JsonAssembyObject_Dic)
         {
             if (pair.Value.jsonWorldTransforms != null)
             {
@@ -323,7 +384,7 @@ public class AssemblyObjectsModule : BaseModule
         {
             return null;
         }
-        return _ID_JsonLabObject_Dic[id];
+        return _ID_JsonAssembyObject_Dic[id];
     }
 
     public bool IsChildOfObj(int id)
@@ -337,7 +398,7 @@ public class AssemblyObjectsModule : BaseModule
         {
             return false;
         }
-        if (_ID_JsonLabObject_Dic[id].jsonWorldTransforms == null)
+        if (_ID_JsonAssembyObject_Dic[id].jsonWorldTransforms == null)
         {
             return false;
         }
