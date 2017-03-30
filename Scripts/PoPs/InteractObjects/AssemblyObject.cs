@@ -27,6 +27,8 @@ public class AssemblyObject : MonoBehaviour
         string name = gameObject.name.Replace("(Clone)", "");
         _id = _objectConfigModule.GetObjectInfoIDByName(name);
         _assemblyObjectModule.RegisterLabObjectTransform(_id, transform);
+        _jsonAssemblyObject = _assemblyObjectModule.GetJsonAssemblyObjectByID(_id);
+        InitialChildPos(_jsonAssemblyObject, out _ID_HasPos_List);
     }
 
     private void OnEnable()
@@ -59,8 +61,6 @@ public class AssemblyObject : MonoBehaviour
 
     private void Start()
     {
-        _jsonAssemblyObject = _assemblyObjectModule.GetJsonAssemblyObjectByID(_id);
-        InitialChildPos(_jsonAssemblyObject, out _ID_HasPos_List);
         SetToOriginalPos();
     }
 
@@ -153,17 +153,14 @@ public class AssemblyObject : MonoBehaviour
 
     public bool IsHasChildPos(int childID)
     {
-        Debug.Log(_id);
         if (_ID_HasPos_List == null)
         {
-            Debug.Log(111);
             return false;
         }
         List<KeyValuePair<int, bool>> validList =
         _ID_HasPos_List.FindAll((KeyValuePair<int, bool> pair) => { return (pair.Key == childID && pair.Value); });
         if (validList.Count == 0)
         {
-            Debug.Log(222);
             return false;
         }
         return true;
@@ -283,6 +280,7 @@ public class AssemblyObject : MonoBehaviour
             }
             else
             {
+                Debug.Log(_id);
                 Debug.LogError("SomeThing Wrong");
             }
         }
