@@ -56,16 +56,30 @@ public class CreatAssemblyObjsJson : Editor
                 {
                     if (parentID == -1)
                     {
-                        List<JsonWorldTransform> list = new List<JsonWorldTransform>(_ID_JsonAssemObject_Dic[id].jsonWorldTransforms);
-                        list.Add(new JsonWorldTransform(labobjects[i].transform));
-                        _ID_JsonAssemObject_Dic[id].jsonWorldTransforms = list.ToArray();
+                        if (_ID_JsonAssemObject_Dic[id].jsonWorldTransforms!= null)
+                        {
+                            List<JsonWorldTransform> list = new List<JsonWorldTransform>(_ID_JsonAssemObject_Dic[id].jsonWorldTransforms);
+                            list.Add(new JsonWorldTransform(labobjects[i].transform));
+                            _ID_JsonAssemObject_Dic[id].jsonWorldTransforms = list.ToArray();
+                        }
+                        else
+                        {
+                            _ID_JsonAssemObject_Dic[id].jsonWorldTransforms = new JsonWorldTransform[1] { new JsonWorldTransform(labobjects[i].transform) };
+                        }
                     }
                     else
                     {
-                        HashSet<int> set = new HashSet<int>(_ID_JsonAssemObject_Dic[id].parentIDs);
-                        set.Add(parentID);
-                        _ID_JsonAssemObject_Dic[id].parentIDs = new int[set.Count];
-                        set.CopyTo(_ID_JsonAssemObject_Dic[id].parentIDs);
+                        if (_ID_JsonAssemObject_Dic[id].parentIDs != null)
+                        {
+                            HashSet<int> set = new HashSet<int>(_ID_JsonAssemObject_Dic[id].parentIDs);
+                            set.Add(parentID);
+                            _ID_JsonAssemObject_Dic[id].parentIDs = new int[set.Count];
+                            set.CopyTo(_ID_JsonAssemObject_Dic[id].parentIDs);
+                        }
+                        else
+                        {
+                            _ID_JsonAssemObject_Dic[id].parentIDs = new int[1] { parentID };
+                        }
                     }
                     
 
@@ -76,11 +90,11 @@ public class CreatAssemblyObjsJson : Editor
                     jsonAssemObj.ID = id;
                     jsonAssemObj.Name = labobjects[i].name;
 
-                    if (parentID != -1)
-                    {
-                        List<JsonWorldTransform> list = new List<JsonWorldTransform>(_ID_JsonAssemObject_Dic[id].jsonWorldTransforms);
-                        list.Add(new JsonWorldTransform(labobjects[i].transform));
-                        jsonAssemObj.jsonWorldTransforms = list.ToArray();
+                    if (parentID == -1)
+                    { 
+                            List<JsonWorldTransform> list = new List<JsonWorldTransform>();
+                            list.Add(new JsonWorldTransform(labobjects[i].transform));
+                            jsonAssemObj.jsonWorldTransforms = list.ToArray();
                     }
                     else
                     {
@@ -100,15 +114,19 @@ public class CreatAssemblyObjsJson : Editor
                     }
                 }
 
-                if(_ID_JsonAssemObject_Dic[id].jsonChildPosInfos==null)
+                if(_ID_JsonAssemObject_Dic[id].jsonChildPosInfos==null&& jsonChildPosInfo.Count>0)
                 {
                     _ID_JsonAssemObject_Dic[id].jsonChildPosInfos = jsonChildPosInfo.ToArray();
                 }
                 else
                 {
+                    if(_ID_JsonAssemObject_Dic[id].jsonChildPosInfos==null&& jsonChildPosInfo.Count==0)
+                    {
+                        continue;
+                    }
                     if(_ID_JsonAssemObject_Dic[id].jsonChildPosInfos.Length==jsonChildPosInfo.Count)
                     {
-                        for(int j=0;j<jsonChildPosInfo.Count;++i)
+                        for(int j=0;j<jsonChildPosInfo.Count;++j)
                         {
                             if(_ID_JsonAssemObject_Dic[id].jsonChildPosInfos[j].childID!=jsonChildPosInfo[j].childID)
                             {
