@@ -52,20 +52,23 @@ public class CreatAssemblyObjsJson : Editor
                 string parentName = (labobjects[i].transform.parent == null ? null : labobjects[i].transform.parent.CompareTag(LabObjectTag) ? labobjects[i].transform.parent.name : null);
                 int parentID = (parentName==null ? -1 : _Name_ID_Dic.ContainsKey(parentName) ? _Name_ID_Dic[parentName] : -1);
 
-                List<int> children = new List<int>();
-                for (int j = 0; j < labobjects[i].transform.childCount; ++j)
-                {
-                    
-                }
-
-
                 if (_ID_JsonAssemObject_Dic.ContainsKey(id))
                 {
-                    if (parentID != -1)
+                    if (parentID == -1)
                     {
-                        
-                       
+                        List<JsonWorldTransform> list = new List<JsonWorldTransform>(_ID_JsonAssemObject_Dic[id].jsonWorldTransforms);
+                        list.Add(new JsonWorldTransform(labobjects[i].transform));
+                        _ID_JsonAssemObject_Dic[id].jsonWorldTransforms = list.ToArray();
                     }
+                    else
+                    {
+                        HashSet<int> set = new HashSet<int>(_ID_JsonAssemObject_Dic[id].parentIDs);
+                        set.Add(parentID);
+                        _ID_JsonAssemObject_Dic[id].parentIDs = new int[set.Count];
+                        set.CopyTo(_ID_JsonAssemObject_Dic[id].parentIDs);
+                    }
+                    
+
                 }
                 else
                 {
@@ -75,9 +78,58 @@ public class CreatAssemblyObjsJson : Editor
 
                     if (parentID != -1)
                     {
-                       
+                        List<JsonWorldTransform> list = new List<JsonWorldTransform>(_ID_JsonAssemObject_Dic[id].jsonWorldTransforms);
+                        list.Add(new JsonWorldTransform(labobjects[i].transform));
+                        jsonAssemObj.jsonWorldTransforms = list.ToArray();
+                    }
+                    else
+                    {
+                        jsonAssemObj.parentIDs = new int[1] { parentID };
                     }
                     _ID_JsonAssemObject_Dic.Add(id,jsonAssemObj);
+                }
+
+                List<JsonChildPosInfo> jsonChildPosInfo = new List<JsonChildPosInfo>();
+                for (int j = 0; j < labobjects[i].transform.childCount; ++j)
+                {
+                    Transform child = labobjects[i].transform.GetChild(j);
+                    if (_Name_ID_Dic.ContainsKey(child.name) && child.CompareTag(LabObjectTag) && child.gameObject.activeInHierarchy)
+                    {
+                        int childID = _Name_ID_Dic[child.name];
+                        jsonChildPosInfo.Add(new JsonChildPosInfo(childID, child.transform));
+                    }
+                }
+
+                if(_ID_JsonAssemObject_Dic[id].jsonChildPosInfos==null)
+                {
+                    _ID_JsonAssemObject_Dic[id].jsonChildPosInfos = jsonChildPosInfo.ToArray();
+                }
+                else
+                {
+                    if(_ID_JsonAssemObject_Dic[id].jsonChildPosInfos.Length==jsonChildPosInfo.Count)
+                    {
+                        for(int j=0;j<jsonChildPosInfo.Count;++i)
+                        {
+                            if(_ID_JsonAssemObject_Dic[id].jsonChildPosInfos[j].childID!=jsonChildPosInfo[j].childID)
+                            {
+                                    Debug.LogError("The same id AssemblyObject has different childRen,this is not permit！");
+                                    return;
+                            }
+                            else
+                            {
+                                if(Vector3.Distance(_ID_JsonAssemObject_Dic[id].jsonChildPosInfos[j].JsonChildPos.ToVector3(),jsonChildPosInfo[j].JsonChildPos.ToVector3())>0.0000001f)
+                                {
+                                    Debug.LogError("The same id AssemblyObject has different childRen,this is not permit！");
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogError("The same id AssemblyObject has different childRen,this is not permit！");
+                        return;
+                    }
                 }
             }
         }

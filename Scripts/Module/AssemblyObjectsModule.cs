@@ -84,17 +84,17 @@ public class JsonChildPosInfo
         JsonChildScal = new JsonVector3();
     }
 
-    public JsonChildPosInfo(int parentID, Vector3 pos, Vector3 rot, Vector3 scal)
+    public JsonChildPosInfo(int childID, Vector3 pos, Vector3 rot, Vector3 scal)
     {
-        this.childID = parentID;
+        this.childID = childID;
         JsonChildPos = new JsonVector3(pos);
         JsonChildRot = new JsonVector3(rot);
         JsonChildScal = new JsonVector3(scal);
     }
 
-    public JsonChildPosInfo(int parentID, Transform transform)
+    public JsonChildPosInfo(int childID, Transform transform)
     {
-        this.childID = parentID;
+        this.childID = childID;
         JsonChildPos = new JsonVector3(transform.localPosition);
         JsonChildRot = new JsonVector3(transform.localEulerAngles);
         JsonChildScal = new JsonVector3(transform.localScale);
