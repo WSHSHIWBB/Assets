@@ -226,7 +226,7 @@ public class AssemblyObjectsModule : BaseModule
         }
         else
         {
-            Debug.LogError("The _ID_TransformList_Dic don't contains ID of " + id);
+            //Debug.LogError("The _ID_TransformList_Dic don't contains ID of " + id);
             return false;
         }
     }
@@ -273,6 +273,24 @@ public class AssemblyObjectsModule : BaseModule
         return _ID_TransformList_Dic[id].ToArray();
     }
 
+    public Transform[] GetTransformWithoutSelfByID(int id,Transform transform)
+    {
+        if(GetTransformsByID(id)==null)
+        {
+            return null;
+        }
+        List<Transform> list = new List<Transform>(GetTransformsByID(id));
+        list.Remove(transform);
+        if(list.Count==0)
+        {
+            return null;
+        }
+        else
+        {
+            return list.ToArray();
+        }
+    }
+
     public Transform[] GetParentTransforms(int id)
     {
         if(!IsJsonContainsID(id)||_ID_JsonAssembyObject_Dic[id].parentIDs==null)
@@ -317,8 +335,6 @@ public class AssemblyObjectsModule : BaseModule
             }
             if(newTrans.Count==0)
             {
-                //Debug.Log(id);
-                //Debug.Log(parentTrans[0].name);
                 return null;
             }
             else
@@ -342,11 +358,11 @@ public class AssemblyObjectsModule : BaseModule
         }
     }
 
-    public Transform[] GetSingleWorldPosBrother(int id)
+    public Transform[] GetAllWorldPosBrother(int id,Transform transform)
     {
-        if (!IsNotChildOfObj(id))
+        if (!IsWorldPosObject(id))
         {
-            Debug.LogError("This JsonAssemblyObject is a child for anther,Should not use this Funtion!");
+            Debug.LogError("This JsonAssemblyObject is not a world Positon Object,Should not use this Funtion!");
             return null;
         }
 
@@ -357,17 +373,17 @@ public class AssemblyObjectsModule : BaseModule
             {
                 brotherIDs.Add(pair.Value.ID);
             }
-            brotherIDs.Remove(id);
         }
         List<Transform> brotherTrans = new List<Transform>();
         for (int i = 0; i < brotherIDs.Count; ++i)
         {
 
-            if (_ID_TransformList_Dic.ContainsKey(brotherIDs[i]) && _ID_TransformList_Dic[brotherIDs[i]].Count == 1)
+            if (_ID_TransformList_Dic.ContainsKey(brotherIDs[i]))
             {
                 brotherTrans.AddRange(_ID_TransformList_Dic[brotherIDs[i]]);
             }
         }
+        brotherTrans.Remove(transform);
         if (brotherTrans.Count == 0)
         {
             return null;
@@ -387,12 +403,7 @@ public class AssemblyObjectsModule : BaseModule
         return _ID_JsonAssembyObject_Dic[id];
     }
 
-    public bool IsChildOfObj(int id)
-    {
-        return false;
-    }
-
-    public bool IsNotChildOfObj(int id)
+    public bool IsWorldPosObject(int id)
     {
         if (!IsJsonContainsID(id))
         {
@@ -408,9 +419,30 @@ public class AssemblyObjectsModule : BaseModule
         }
     }
 
+    public JsonAssemblyObject[] GetAllWorldPosBrotherJsonAssemblyObj(int id)
+    {
+        if(!IsJsonContainsID(id))
+        {
+            return null;
+        }
+        List<JsonAssemblyObject> list = new List<JsonAssemblyObject>();
+        foreach(var pair in _ID_JsonAssembyObject_Dic)
+        {
+            if(pair.Value.parentIDs==null&&pair.Value.jsonWorldTransforms!=null)
+            {
+                list.Add(pair.Value);
+            }
+        }
+        if(list.Count==0)
+        {
+            return null;
+        }
+        else
+        {
+            return list.ToArray();
+        }
 
-
-
+    }
 
     #endregion
 }

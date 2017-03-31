@@ -254,7 +254,6 @@ public class LabObject : MonoBehaviour
         {   
             return RelateTrans_List.ToArray();
         }
-
     }
 
     public void  SetToOrigianlPos()

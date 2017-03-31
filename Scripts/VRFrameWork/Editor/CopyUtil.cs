@@ -34,7 +34,7 @@ public class CopyUtil : EditorWindow
     [MenuItem("GameObject/Remove All Current Components #&D",false,15)]
     static void Delete()
     {
-        /*
+
         foreach(var targetGameobject in Selection.gameObjects)
         {
             if (!targetGameobject)
@@ -42,10 +42,10 @@ public class CopyUtil : EditorWindow
             Component[] components = targetGameobject.GetComponents<Component>();
             foreach(var component in components)
             {
-                DestroyImmediate(component);
+                if(component.GetType()!=typeof(Transform))
+                     DestroyImmediate(component);
             }
         }
-        */
     }
 
 }

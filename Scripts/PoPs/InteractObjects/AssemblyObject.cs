@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using VRFrameWork;
@@ -14,7 +15,7 @@ public class AssemblyObject : MonoBehaviour
     private VRTK_InteractGrab _leftGrab;
     private VRTK_InteractGrab _rightGrab;
 
-    private int _originalPosindex = -1;
+    private List<bool> _Index_IsNotUsed_List;
     private List<KeyValuePair<int, bool>> _ID_HasPos_List;
 
     private void Awake()
@@ -26,9 +27,15 @@ public class AssemblyObject : MonoBehaviour
         _rightGrab = VRTK_DeviceFinder.GetControllerRightHand().GetComponent<VRTK_InteractGrab>();
         string name = gameObject.name.Replace("(Clone)", "");
         _id = _objectConfigModule.GetObjectInfoIDByName(name);
-        _assemblyObjectModule.RegisterLabObjectTransform(_id, transform);
+        _assemblyObjectModule.RegisterLabObjectTransform(_id, transform);      //Register
         _jsonAssemblyObject = _assemblyObjectModule.GetJsonAssemblyObjectByID(_id);
-        InitialChildPos(_jsonAssemblyObject, out _ID_HasPos_List);
+        InitialWorldPos(out _Index_IsNotUsed_List);
+        InitialChildPos(out _ID_HasPos_List);
+    }
+
+    private void OnDestroy()
+    {
+        //to be                                                                //UnRegister
     }
 
     private void OnEnable()
@@ -61,55 +68,116 @@ public class AssemblyObject : MonoBehaviour
 
     private void Start()
     {
-        SetToOriginalPos();
+
+    }
+
+    private void Update()
+    {
+
     }
 
     private void LeftGrabHandler(object sender, ObjectInteractEventArgs e)
     {
-        if (e.target != null)
+        if (e.target != null && e.target == gameObject)
         {
-            AssemblyObject assemObject = e.target.GetComponent<AssemblyObject>();
-            if (assemObject != null && assemObject.CompareID(assemObject._id))
-            {
-
-            }
+            //to be Set _Index_IsUsed_List and _ID_HasPos_List
+            ResetWorldPosNotUsedList();
         }
     }
 
     private void RightGrabHandler(object sender, ObjectInteractEventArgs e)
     {
-        if (e.target != null)
+        if (e.target != null && e.target == gameObject)
         {
-            AssemblyObject assemObject = e.target.GetComponent<AssemblyObject>();
-            if (assemObject != null && assemObject.CompareID(assemObject._id))
-            {
+            //to be Set _Index_IsUsed_List and _ID_HasPos_List
+            ResetWorldPosNotUsedList();
 
-            }
         }
     }
 
     private void LeftGrabRealseHandler(object sender, ObjectInteractEventArgs e)
     {
-        if (e.target != null)
+        if (e.target != null && e.target==gameObject)
         {
-            AssemblyObject assemObject = e.target.GetComponent<AssemblyObject>();
-            if (assemObject != null && assemObject.CompareID(assemObject._id))
-            {
-
-            }
+            SetToValidPositon();
         }
     }
 
     private void RightGrabRealseHandler(object sender, ObjectInteractEventArgs e)
     {
-        if (e.target != null)
+        if (e.target != null && e.target==gameObject)
         {
-            AssemblyObject assemObject = e.target.GetComponent<AssemblyObject>();
-            if (assemObject != null && assemObject.CompareID(assemObject._id))
-            {
+            SetToValidPositon();
+        }
+    }
 
+    private void SetToValidPositon()
+    {
+        if (_jsonAssemblyObject.parentIDs == null)
+        {
+            SetToValidWorldPosition();
+        }
+        else
+        {
+            SetToValidParentPosition();
+        }
+    }
+
+    private void SetToValidWorldPosition()
+    {
+        if (_Index_IsNotUsed_List == null)
+        {
+            Debug.LogError("The _Index_IsNotUsed_List is null!");
+            return;
+        }
+        var rigidBody = transform.GetComponent<Rigidbody>();
+        for (int i = 0; i < _jsonAssemblyObject.jsonWorldTransforms.Length; ++i)
+        {
+            Vector3 jsonSelfPos = _jsonAssemblyObject.jsonWorldTransforms[i].JsonWorldPos.ToVector3();
+            Quaternion jsonSelfQua = Quaternion.Euler(_jsonAssemblyObject.jsonWorldTransforms[i].JsonWorldRot.ToVector3());
+            JsonAssemblyObject[] brotherJsonAssemblyObjs = _assemblyObjectModule.GetAllWorldPosBrotherJsonAssemblyObj(_id);
+            for (int j = 0; j < brotherJsonAssemblyObjs.Length; ++j)
+            {
+                Transform[] brotherTrans = _assemblyObjectModule.GetTransformWithoutSelfByID(brotherJsonAssemblyObjs[j].ID,transform);
+                if (brotherTrans != null)
+                {
+                    for (int k = 0; k < brotherTrans.Length; ++k)
+                    {
+                        JsonWorldTransform[] jsonBrotherPosArray = brotherJsonAssemblyObjs[j].jsonWorldTransforms;
+                        for (int m = 0; m < jsonBrotherPosArray.Length; ++m)
+                        {
+                            if (brotherTrans[k].GetComponent<AssemblyObject>().IsWorldPosNotUsed(m))
+                            {
+                                Vector3 oldDir = jsonSelfPos - jsonBrotherPosArray[m].JsonWorldPos.ToVector3();
+                                Quaternion oldBrotherQua = Quaternion.Euler(jsonBrotherPosArray[m].JsonWorldRot.ToVector3());
+                                Quaternion brotherFixQUa = brotherTrans[k].rotation * Quaternion.Inverse(oldBrotherQua);
+                                Vector3 newDir = brotherFixQUa * oldDir;
+                                Vector3 relatePos = newDir.normalized * oldDir.magnitude + brotherTrans[k].position;
+                                Quaternion relateQua = brotherFixQUa * jsonSelfQua;
+
+                                if (Vector3.Distance(relatePos, transform.position) < 0.1f)
+                                {
+                                    UseWorldPos(i);
+                                    brotherTrans[k].GetComponent<AssemblyObject>().UseWorldPos(m);
+                                    transform.position = relatePos;
+                                    transform.rotation = relateQua;
+                                    transform.localScale = jsonBrotherPosArray[m].JsonWorldScal.ToVector3();
+                                    rigidBody.isKinematic = true;
+                                    Debug.LogError("Function ok!!!!!!!!!!!");
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
+        rigidBody.isKinematic = false;
+    }
+
+    private void SetToValidParentPosition()
+    {
+
     }
 
     public bool CompareID(int id)
@@ -124,24 +192,75 @@ public class AssemblyObject : MonoBehaviour
         }
     }
 
-    private void Update()
+    private void InitialWorldPos(out List<bool> list)
     {
-
+        if (_jsonAssemblyObject.jsonWorldTransforms != null)
+        {
+            list = new List<bool>();
+            for (int i = 0; i < _jsonAssemblyObject.jsonWorldTransforms.Length; ++i)
+            {
+                list.Add(true);
+            }
+        }
+        else
+        {
+            list = null;
+        }
     }
 
-    public int GetOriginalPosIndex()
+    public bool IsWorldPosNotUsed(int index)
     {
-        return _originalPosindex;
+        if (_Index_IsNotUsed_List == null)
+        {
+            return false;
+        }
+        if (index > _Index_IsNotUsed_List.Count || index < 0)
+        {
+            Debug.LogError("The index is illegal");
+            return false;
+        }
+        return _Index_IsNotUsed_List[index];
     }
 
-    private void InitialChildPos(JsonAssemblyObject jsonAssemblyObject, out List<KeyValuePair<int, bool>> id_hasPos_List)
+    public bool UseWorldPos(int index)
     {
-        if (jsonAssemblyObject.jsonChildPosInfos != null)
+        if (_Index_IsNotUsed_List == null)
+        {
+            Debug.LogError("The _Index_IsNotUsed_List is null,you can't use this function!");
+            return false;
+        }
+        if (index > _Index_IsNotUsed_List.Count || index < 0)
+        {
+            Debug.LogError("The index is illegal");
+            return false;
+        }
+        _Index_IsNotUsed_List[index] = false;
+        return true;
+    }
+
+    public void ResetWorldPosNotUsedList()
+    {
+        if (_Index_IsNotUsed_List == null)
+        {
+            return;
+        }
+        else
+        {
+            for (int i = 0; i < _Index_IsNotUsed_List.Count; ++i)
+            {
+                _Index_IsNotUsed_List[i] = true;
+            }
+        }
+    }
+
+    private void InitialChildPos(out List<KeyValuePair<int, bool>> id_hasPos_List)
+    {
+        if (_jsonAssemblyObject.jsonChildPosInfos != null)
         {
             id_hasPos_List = new List<KeyValuePair<int, bool>>();
-            for (int i = 0; i < jsonAssemblyObject.jsonChildPosInfos.Length; ++i)
+            for (int i = 0; i < _jsonAssemblyObject.jsonChildPosInfos.Length; ++i)
             {
-                int childID = jsonAssemblyObject.jsonChildPosInfos[i].childID;
+                int childID = _jsonAssemblyObject.jsonChildPosInfos[i].childID;
                 id_hasPos_List.Add(new KeyValuePair<int, bool>(childID, true));
             }
         }
@@ -221,68 +340,6 @@ public class AssemblyObject : MonoBehaviour
         else
         {
             return false;
-        }
-    }
-
-    private void SetToOriginalPos()
-    {
-        if (_jsonAssemblyObject.parentIDs == null)
-        {
-            if (_jsonAssemblyObject.jsonWorldTransforms.Length == 1)
-            {
-                transform.position = _jsonAssemblyObject.jsonWorldTransforms[0].JsonWorldPos.ToVector3();
-                transform.eulerAngles = _jsonAssemblyObject.jsonWorldTransforms[0].JsonWorldRot.ToVector3();
-                transform.localScale = _jsonAssemblyObject.jsonWorldTransforms[0].JsonWorldScal.ToVector3();
-            }
-            else
-            {
-                AssemblyObject[] sameIDs = _assemblyObjectModule.GetAssemblyOfSameID(_id, transform);
-                if (sameIDs != null)
-                {
-                    List<int> posindexList = new List<int>();
-                    for (int j = 0; j < _jsonAssemblyObject.jsonWorldTransforms.Length; ++j)
-                    {
-                        posindexList.Add(j);
-                    }
-                    for (int i = 0; i < sameIDs.Length; ++i)
-                    {
-                        if (sameIDs[i].GetOriginalPosIndex() != -1)
-                        {
-                            posindexList.Remove(sameIDs[i].GetOriginalPosIndex());
-                        }
-                    }
-
-                    if (posindexList.Count > 0)
-                    {
-                        JsonWorldTransform validJsonPOs = _jsonAssemblyObject.jsonWorldTransforms[posindexList[0]];
-                        transform.position = validJsonPOs.JsonWorldPos.ToVector3();
-                        transform.eulerAngles = validJsonPOs.JsonWorldRot.ToVector3();
-                        transform.localScale = validJsonPOs.JsonWorldScal.ToVector3();
-                        _originalPosindex = posindexList[0];
-                    }
-                }
-                else
-                {
-                    Debug.LogError("Some thing wrong");
-                }
-            }
-        }
-        else
-        {
-            Transform parent = _assemblyObjectModule.GetOneHasPosParentTransform(_id);
-            if (parent != null)
-            {
-                JsonChildPosInfo jsonChildPosInfo = parent.GetComponent<AssemblyObject>().GetAChildPos(_id);
-                transform.SetParent(parent);
-                transform.localPosition = jsonChildPosInfo.JsonChildPos.ToVector3();
-                transform.localEulerAngles = jsonChildPosInfo.JsonChildRot.ToVector3();
-                transform.localScale = jsonChildPosInfo.JsonChildScal.ToVector3();
-            }
-            else
-            {
-                Debug.Log(_id);
-                Debug.LogError("SomeThing Wrong");
-            }
         }
     }
 }
