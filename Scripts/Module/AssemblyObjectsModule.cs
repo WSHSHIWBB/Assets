@@ -186,7 +186,7 @@ public class AssemblyObjectsModule : BaseModule
     /// </summary>
     /// <param name="id"></param>
     /// <param name="transform"></param>
-    public void RegisterLabObjectTransform(int id, Transform transform)
+    public void RegisterAssemblyObjectTransform(int id, Transform transform)
     {
         try
         {
@@ -289,6 +289,23 @@ public class AssemblyObjectsModule : BaseModule
         {
             return list.ToArray();
         }
+    }
+
+    public bool IsSameIDInSamePos(int id,Transform transform,Vector3 pos)
+    {
+        Transform[] transformArry = GetTransformWithoutSelfByID(id, transform);
+        if(transformArry==null)
+        {
+            return false;
+        }
+        for(int i=0;i<transformArry.Length;++i)
+        {
+            if(Vector3.Distance(transformArry[i].position,pos)<0.01f)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public Transform[] GetParentTransforms(int id)
