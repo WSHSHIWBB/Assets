@@ -33,6 +33,7 @@ namespace VRTK.Highlighters
             }
             else
             {
+                _highLighter.ReinitMaterials();
                 if (OutLineColor == Color.clear)
                 {
                     _highLighter.ConstantOnImmediate((Color)color);
@@ -64,7 +65,7 @@ namespace VRTK.Highlighters
         public override void ResetHighlighter()
         {
             _highLighter.Off();
-            _highLighter.ReinitMaterials();
+            //_highLighter.ReinitMaterials();
         }
 
 

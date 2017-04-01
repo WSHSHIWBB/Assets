@@ -205,6 +205,20 @@ public class AssemblyObjectsModule : BaseModule
         }
     }
 
+    public void UnRegisterAssemblyObjectTransform(int id,Transform trans)
+    {
+        if(!IsTransformContainsID(id))
+        {
+            return;
+        }
+        if(!_ID_TransformList_Dic[id].Contains(trans))
+        {
+            Debug.LogError("The transform hasn't Registered!");
+            return;
+        }
+        _ID_TransformList_Dic[id].Remove(trans);
+    }
+
     public bool IsJsonContainsID(int id)
     {
         if (_ID_JsonAssembyObject_Dic.ContainsKey(id))
@@ -333,48 +347,6 @@ public class AssemblyObjectsModule : BaseModule
         }  
     }
 
-    public Transform[] GetAllHasPosParentTransforms(int id)
-    {
-        List<Transform> newTrans = new List<Transform>();
-        Transform[] parentTrans = GetParentTransforms(id);
-        if (parentTrans == null)
-        {
-            return null;
-        }
-        else
-        {
-            for (int i = 0; i < parentTrans.Length; ++i)
-            {
-                if(parentTrans[i].GetComponent<AssemblyObject>().IsHasChildPos(id))
-                {
-                    newTrans.Add(parentTrans[i]);
-                }
-            }
-            if(newTrans.Count==0)
-            {
-                return null;
-            }
-            else
-            {
-                return newTrans.ToArray();
-            }
-        }
-    }
-
-    public Transform GetOneHasPosParentTransform(int id)
-    {
-        Transform[] arry = GetAllHasPosParentTransforms(id);
-        if(arry==null)
-        {
-            return null;
-        }
-        else
-        {
-            Transform parent = RandomUtil.Array(arry);
-            return parent;
-        }
-    }
-
     public Transform[] GetAllWorldPosBrother(int id,Transform transform)
     {
         if (!IsWorldPosObject(id))
@@ -463,186 +435,3 @@ public class AssemblyObjectsModule : BaseModule
 
     #endregion
 }
-
-
-
-/*
-public Transform[] GetChildrenTransform(int id)
-{
-    if (!IsJsonContainsID(id))
-    {
-        return null;
-    }
-    List<int> childrenID = new List<int>();
-    for(int i=0;i<_ID_JsonLabObject_Dic[id].JsonPosInforms.Length;++i)
-    {
-        if(_ID_JsonLabObject_Dic[id].JsonPosInforms[i].ChildRenIDs!=null)
-        {
-            childrenID.AddRange(_ID_JsonLabObject_Dic[id].JsonPosInforms[i].ChildRenIDs);
-        }
-    }
-
-    if (childrenID.Count>0)
-    {
-        Transform[] childrenTransform = new Transform[childrenID.Count];
-        for (int i = 0; i < childrenTransform.Length; ++i)
-        {
-            childrenTransform[i] = _ID_TransformList_Dic[childrenID[i]];
-        }
-        return childrenTransform;
-    }
-    else
-    {
-        return null;
-    }
-}
-
-public Transform GetParentTransform(int id)
-{
-    if (!IsJsonContainsID(id))
-    {
-        return null;
-    }
-    int parentID = _ID_JsonLabObject_Dic[id].ParentID;
-    if (-1 == parentID)
-    {
-        return null;
-    }
-
-    return _ID_TransformList_Dic[parentID];
-}
-
-
-public JsonLabObject GetJsonLabObj(int id)
-{
-    if (!IsJsonContainsID(id))
-    {
-        return null;
-    }
-
-    return _ID_JsonLabObject_Dic[id];
-}
-
-public JsonLabObject[] GetChildrenJsonLabObj(int id)
-{
-    if (!IsJsonContainsID(id))
-    {
-        return null;
-    }
-
-    int[] childrenID = _ID_JsonLabObject_Dic[id].ChildrenIDs;
-    if (childrenID != null)
-    {
-        JsonLabObject[] newArry = new JsonLabObject[childrenID.Length];
-        for (int i = 0; i < newArry.Length; ++i)
-        {
-            newArry[i] = _ID_JsonLabObject_Dic[childrenID[i]];
-        }
-        return newArry;
-    }
-    else
-    {
-        return null;
-    }
-}
-
-public JsonLabObject GetParentJsonLabObj(int id)
-{
-    if (!IsJsonContainsID(id))
-    {
-        return null;
-    }
-
-    int parentID = _ID_JsonLabObject_Dic[id].ParentID;
-    if (-1 == parentID)
-    {
-        return null;
-    }
-
-    return _ID_JsonLabObject_Dic[parentID];
-}
-
-public int[] GetLabObjBrothersID(int id)
-{
-    if (!_ID_JsonLabObject_Dic.ContainsKey(id))
-    {
-        Debug.LogError("The ID-JsonLabObj-Dic don't contains key of " + id);
-        return null;
-    }
-
-    int parentID = _ID_JsonLabObject_Dic[id].ParentID;
-    if (-1 == parentID)
-    {
-        List<int> list = new List<int>();
-        foreach (var pair in _ID_JsonLabObject_Dic)
-        {
-            if (pair.Value.ID != id && pair.Value.ParentID == -1)
-            {
-                list.Add(pair.Key);
-            }
-        }
-        if (list.Count != 0)
-        {
-            return list.ToArray();
-        }
-        else
-        {
-            return null;
-        }
-    }
-    else
-    {
-        JsonLabObject parent = _ID_JsonLabObject_Dic[parentID];
-        var brothers = parent.ChildrenIDs;
-        if (brothers == null || brothers.Length == 1)
-        {
-            return null;
-        }
-        else
-        {
-            List<int> arry = new List<int>(brothers);
-            arry.Remove(id);
-            return arry.ToArray();
-        }
-    }
-}
-
-public JsonLabObject[] GetBrothersJsonLabObj(int id)
-{
-    int[] brothersID = GetLabObjBrothersID(id);
-    if (brothersID != null)
-    {
-        List<JsonLabObject> arry = new List<JsonLabObject>();
-        for (int i = 0; i < brothersID.Length; ++i)
-        {
-            arry.Add(_ID_JsonLabObject_Dic[brothersID[i]]);
-        }
-        return arry.ToArray();
-    }
-    else
-    {
-        return null;
-    }
-}
-
-public bool IsBrotherofLabObj(int id, int brotherID)
-{
-    int[] brothersID = GetLabObjBrothersID(id);
-    if (brothersID == null)
-        return false;
-    else
-    {
-        List<int> arry = new List<int>(brothersID);
-        if (!arry.Contains(brotherID))
-        {
-            return false;
-        }
-        else
-        {
-            return true;
-        }
-    }
-}
-*/
-
-

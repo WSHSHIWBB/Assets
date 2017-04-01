@@ -26,14 +26,14 @@ public class AssemblyObject : MonoBehaviour
         _rightGrab = VRTK_DeviceFinder.GetControllerRightHand().GetComponent<VRTK_InteractGrab>();
         string name = gameObject.name.Replace("(Clone)", "");
         _id = _objectConfigModule.GetObjectInfoIDByName(name);
-        _assemblyObjectModule.RegisterAssemblyObjectTransform(_id, transform);      //Register
+        _assemblyObjectModule.RegisterAssemblyObjectTransform(_id, transform);   
         _jsonAssemblyObject = _assemblyObjectModule.GetJsonAssemblyObjectByID(_id);
         InitialChildPos(out _ID_HasPos_List);
     }
 
     private void OnDestroy()
     {
-        //to be                                                                //UnRegister
+        _assemblyObjectModule.UnRegisterAssemblyObjectTransform(_id,transform);
     }
 
     private void OnEnable()
@@ -78,7 +78,7 @@ public class AssemblyObject : MonoBehaviour
     {
         if (e.target != null && e.target == gameObject)
         {
-            //to be Set and _ID_HasPos_List
+            PreProcessBeforeGrab();
         }
     }
 
@@ -86,7 +86,7 @@ public class AssemblyObject : MonoBehaviour
     {
         if (e.target != null && e.target == gameObject)
         {
-            //to be Set and _ID_HasPos_List
+            PreProcessBeforeGrab();
         }
     }
 
@@ -106,13 +106,22 @@ public class AssemblyObject : MonoBehaviour
         }
     }
 
+    private void PreProcessBeforeGrab()
+    {
+        Transform parent = transform.parent;
+        if(parent&&parent.GetComponent<AssemblyObject>())
+        {
+            parent.GetComponent<AssemblyObject>().ReleaseChildPos(_id, transform.localPosition);
+        }
+    }
+
     private void SetToValidPositon()
     {
-        if (_jsonAssemblyObject.parentIDs == null)
+        if (_jsonAssemblyObject.jsonWorldTransforms != null)
         {
             SetToValidWorldPosition();
         }
-        else
+        if(_jsonAssemblyObject.parentIDs!=null)
         {
             SetToValidParentPosition();
         }
@@ -167,12 +176,46 @@ public class AssemblyObject : MonoBehaviour
 
     private void SetToValidParentPosition()
     {
-
+        var rigidBody = transform.GetComponent<Rigidbody>();
+        for (int i=0;i<_jsonAssemblyObject.parentIDs.Length;++i)
+        {
+            int parentID = _jsonAssemblyObject.parentIDs[i];
+            JsonAssemblyObject jsonParent = _assemblyObjectModule.GetJsonAssemblyObjectByID(parentID);
+            Transform[] parentTrans = _assemblyObjectModule.GetTransformWithoutSelfByID(parentID, transform);
+            for(int j=0;j<parentTrans.Length;++j)
+            {
+                JsonChildPosInfo[] childPosInfos = jsonParent.jsonChildPosInfos;
+                if(childPosInfos==null)
+                {
+                    Debug.LogError("The childPosInfo in null,This is Error!");
+                    return;
+                }
+                for(int k=0;k<childPosInfos.Length;++k)
+                {
+                    if (childPosInfos[k].childID == _id && parentTrans[j].GetComponent<AssemblyObject>().IsHasChildPos(_id, k))
+                    {
+                        Vector3 validPos = parentTrans[j].TransformPoint(childPosInfos[k].JsonChildPos.ToVector3());
+                        if (Vector3.Distance(validPos, transform.position) < 0.07f)
+                        {
+                            transform.parent = parentTrans[j];
+                            transform.localPosition = childPosInfos[k].JsonChildPos.ToVector3();
+                            transform.localEulerAngles = childPosInfos[k].JsonChildRot.ToVector3();
+                            transform.localScale = childPosInfos[k].JsonChildScal.ToVector3();
+                            parentTrans[j].GetComponent<AssemblyObject>().GetAChildPos(k, _id);
+                            rigidBody.isKinematic = true;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        transform.parent = null;
+        rigidBody.isKinematic = false;
     }
 
     public bool CompareID(int id)
     {
-        if (id == this._id)
+        if (id ==_id)
         {
             return true;
         }
@@ -199,76 +242,63 @@ public class AssemblyObject : MonoBehaviour
         }
     }
 
-    public bool IsHasChildPos(int childID)
+    public bool IsHasChildPos(int _id,int index)
     {
-        if (_ID_HasPos_List == null)
+        if(index>_ID_HasPos_List.Count-1)
         {
+            Debug.LogError("The index is illegal!");
             return false;
         }
-        List<KeyValuePair<int, bool>> validList =
-        _ID_HasPos_List.FindAll((KeyValuePair<int, bool> pair) => { return (pair.Key == childID && pair.Value); });
-        if (validList.Count == 0)
+        if(_ID_HasPos_List[index].Key!=_id)
         {
+            Debug.LogError("The childID of index " + index + " id different form _id " + _id);
             return false;
         }
+        return _ID_HasPos_List[index].Value;
+    }
+
+    public bool GetAChildPos(int index,int _id)
+    {
+        if(index>_ID_HasPos_List.Count-1||index<0)
+        {
+            Debug.LogError("Ilegal index!");
+            return false;
+        }
+        if(_ID_HasPos_List[index].Key!=_id)
+        {
+            Debug.LogError("The _id is not same!");
+            return false;
+        }
+        if(!_ID_HasPos_List[index].Value)
+        {
+            Debug.LogError("Dont have child Pos");
+            return false;
+        }
+        _ID_HasPos_List[index] = new KeyValuePair<int, bool>(_ID_HasPos_List[index].Key, false);
         return true;
     }
 
-    public JsonChildPosInfo GetAChildPos(int childID)
+    public bool ReleaseChildPos(int childID,Vector3 localPos)
     {
-        if (IsHasChildPos(childID))
+        if(_ID_HasPos_List==null)
         {
-            int index = -1;
-            if (RandomUtil.Bool())
-            {
-                index = _ID_HasPos_List.FindIndex((KeyValuePair<int, bool> pair) => { return (pair.Key == childID && pair.Value); });
-            }
-            else
-            {
-                index = _ID_HasPos_List.FindLastIndex((KeyValuePair<int, bool> pair) => { return (pair.Key == childID && pair.Value); });
-            }
-            if (index == -1)
-            {
-                return null;
-            }
-            else
-            {
-                _ID_HasPos_List[index] = new KeyValuePair<int, bool>(_ID_HasPos_List[index].Key, false);
-                return _jsonAssemblyObject.jsonChildPosInfos[index];
-            }
+            Debug.LogError("The _ID_HasPos_List is null!");
+            return false;
         }
-        else
+        for(int i=0;i<_jsonAssemblyObject.jsonChildPosInfos.Length;++i)
         {
-            return null;
-        }
-    }
-
-    public bool ReleaseAChildPos(int childID)
-    {
-        if (IsHasChildPos(childID))
-        {
-            int index = -1;
-            if (RandomUtil.Bool())
+            if(_jsonAssemblyObject.jsonChildPosInfos[i].childID==childID
+            &&Vector3.Distance(_jsonAssemblyObject.jsonChildPosInfos[i].JsonChildPos.ToVector3(),localPos)<0.00001f)
             {
-                index = _ID_HasPos_List.FindIndex((KeyValuePair<int, bool> pair) => { return (pair.Key == childID && !pair.Value); });
-            }
-            else
-            {
-                index = _ID_HasPos_List.FindLastIndex((KeyValuePair<int, bool> pair) => { return (pair.Key == childID && !pair.Value); });
-            }
-            if (index == -1)
-            {
-                return false;
-            }
-            else
-            {
-                _ID_HasPos_List[index] = new KeyValuePair<int, bool>(_ID_HasPos_List[index].Key, true);
+                if(_ID_HasPos_List[i].Key!=childID||_ID_HasPos_List[i].Value!=false)
+                {
+                    Debug.LogError("Big Error!");
+                    return true;
+                }
+                _ID_HasPos_List[i] = new KeyValuePair<int, bool>(_ID_HasPos_List[i].Key, true);
                 return true;
             }
         }
-        else
-        {
-            return false;
-        }
+        return false;
     }
 }
