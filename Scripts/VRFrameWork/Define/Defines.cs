@@ -19,8 +19,7 @@ namespace VRFrameWork
       public enum EnumUIType
       {
             None=-1,
-            Play_State,
-            Play_Equip,
+            Play_Bag,
       }
 
 

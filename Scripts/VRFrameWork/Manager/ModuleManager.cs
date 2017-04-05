@@ -39,6 +39,7 @@ namespace VRFrameWork
         {
             LoadModule(typeof(ObjectsConfigModule));
             LoadModule(typeof(AssemblyObjectsModule));
+            LoadModule(typeof(BagModule));
         }
 
         public void UnRegisterAllModule()
@@ -62,6 +63,10 @@ namespace VRFrameWork
             else if (moduleType == typeof(AssemblyObjectsModule))
             {
                 bm = new AssemblyObjectsModule();
+            }
+            else if(moduleType==typeof(BagModule))
+            {
+                bm = new BagModule();
             }
           
 
