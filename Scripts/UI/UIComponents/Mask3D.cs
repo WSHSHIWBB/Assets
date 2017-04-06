@@ -1,10 +1,8 @@
 ﻿using UnityEngine;
-using System.Collections;
 using UnityEngine.UI;
 
 public class Mask3D : MonoBehaviour
 {
-    private RectTransform rectTransform;
     private Transform[] Points;
     private Renderer[] Renderers;
     private RectTransform[] Grids;
@@ -18,10 +16,9 @@ public class Mask3D : MonoBehaviour
             Grids[i] = transform.GetChild(1).GetChild(i).GetComponent<RectTransform>();
             Debug.Log(Grids[i].position);
         }
-        Renderers = GetComponentsInChildren<Renderer>();
-        rectTransform = GetComponent<RectTransform>();
-        Vector3[] vertices = GetBorder(rectTransform);
-        
+
+        //Vector3[] vertices = GetBorder(rectTransform);
+        //Renderers = GetComponentsInChildren<Renderer>();
     }
 
     bool IsInBorder(Vector3 point,Vector3[] vertices)

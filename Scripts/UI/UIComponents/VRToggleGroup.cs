@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class VRToggleGroup : MonoBehaviour
@@ -27,5 +26,16 @@ public class VRToggleGroup : MonoBehaviour
         }
         toggle.IsOn = true;
         toggle.OnSelected();
+    }
+
+    public void SetOn(int index)
+    {
+        if(index<0||index>_toggleList.Count-1)
+        {
+            Debug.LogError("The index is illegal!");
+            return;
+        }
+        SetOn(_toggleList[index]);
+        
     }
 }

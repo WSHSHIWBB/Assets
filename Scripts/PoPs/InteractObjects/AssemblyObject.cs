@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using VRFrameWork;
 using VRTK;
@@ -11,7 +9,7 @@ public class AssemblyObject : MonoBehaviour
     private ObjectsConfigModule _objectConfigModule;
     private AssemblyObjectsModule _assemblyObjectModule;
     private JsonAssemblyObject _jsonAssemblyObject;
-
+    
     private VRTK_InteractGrab _leftGrab;
     private VRTK_InteractGrab _rightGrab;
 
@@ -182,6 +180,10 @@ public class AssemblyObject : MonoBehaviour
             int parentID = _jsonAssemblyObject.parentIDs[i];
             JsonAssemblyObject jsonParent = _assemblyObjectModule.GetJsonAssemblyObjectByID(parentID);
             Transform[] parentTrans = _assemblyObjectModule.GetTransformWithoutSelfByID(parentID, transform);
+            if(parentTrans==null)
+            {
+                return;
+            }
             for(int j=0;j<parentTrans.Length;++j)
             {
                 JsonChildPosInfo[] childPosInfos = jsonParent.jsonChildPosInfos;

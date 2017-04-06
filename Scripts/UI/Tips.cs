@@ -6,8 +6,11 @@ using UnityEngine.UI;
 
 public class Tips : MonoBehaviour
 {
-    private Vector3 _lineEndPos;
+    [HideInInspector]
+    public Transform currentShow;
 
+    private long frameCount = 0;
+    private Vector3 _lineEndPos;
     private LineRenderer _lineRender;
     private Text _text;
 
@@ -46,14 +49,52 @@ public class Tips : MonoBehaviour
         transform.localPosition = new Vector3(localX, localY, localZ);
     }
 
+    public void RefreshFrame(long newFrame)
+    {
+        frameCount = newFrame;
+    }
+
+    public bool Judge3Frame(long currentFrame)
+    {
+        if(currentFrame-frameCount<3)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public bool Judge1Frame(long currentFrame)
+    {
+        if (currentFrame - frameCount < 1)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
     private void Update()
     {
         DrawLine();
+        AutoHide();
     }
 
     private void DrawLine()
     {
         _lineRender.SetPosition(0, transform.position);
         _lineRender.SetPosition(1, _lineEndPos);
+    }
+
+    private void AutoHide()
+    {
+        if (!Judge3Frame(Time.frameCount))
+        {
+            gameObject.SetActive(false);
+        }
     }
 }

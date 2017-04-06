@@ -48,6 +48,7 @@ public class OculusGrabGestureManager : MonoBehaviour
         if (e.target!=null)
         {
             string name = e.target.name;
+            name = name.Replace("(Clone)", "");
             GameObject GrabPos = (GameObject)ObjPoolManager.Instance.Get("OculusGestures/Left/" + name + "L", false);
             if (GrabPos != null)
             {
@@ -61,6 +62,7 @@ public class OculusGrabGestureManager : MonoBehaviour
         if (e.target != null)
         {
             string name = e.target.name;
+            name=name.Replace("(Clone)", "");
             GameObject GrabPos = (GameObject)ObjPoolManager.Instance.Get("OculusGestures/Right/" + name + "R", false);
             if (GrabPos != null)
             {

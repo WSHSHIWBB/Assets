@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 using VRFrameWork;
 
 public class VRToggle : MonoBehaviour
@@ -16,16 +17,28 @@ public class VRToggle : MonoBehaviour
         }
     }
 
-    public VRToggleGroup Group;
-    private Animator animator;
+    private VRToggleGroup _group;
+    private Animator _animator;
+    private Text _text;
+
+    public void SetIndex(string text)
+    {
+        _text.text = text;
+    }
+
+    private void Awake()
+    {
+        _group = GetComponentInParent<VRToggleGroup>();
+        _animator = GetComponent<Animator>();
+        _text = transform.Find("Text").GetComponent<Text>();
+        if (_group)
+        {
+            _group.Add(this);
+        }
+    }
 
     void Start()
     {
-        if (Group)
-        {
-            Group.Add(this);
-        }
-        animator = GetComponent<Animator>();
         UIEventListener.AddUIListener(gameObject).SetEventHandler(EnumUIinputType.OnEnter, new UIEventHandler(OnEnter), null);
         UIEventListener.AddUIListener(gameObject).SetEventHandler(EnumUIinputType.OnExit, new UIEventHandler(OnExit), null);
         UIEventListener.AddUIListener(gameObject).SetEventHandler(EnumUIinputType.OnDown, new UIEventHandler(OnDown), null);
@@ -33,28 +46,20 @@ public class VRToggle : MonoBehaviour
 
     public void OnNormal()
     {
-        animator.SetTrigger("Normal");
+        _animator.SetTrigger("Normal");
     }
 
     public void OnHightLighted()
     {
-        animator.SetTrigger("Highlighted");
+        _animator.SetTrigger("Highlighted");
         //tobe hightlighted select
     }
 
     public void OnSelected()
     {
+        _animator.SetTrigger("Pressed");
         //tobe selected handler
-        animator.SetTrigger("Pressed");
         //tobe sound select
-    }
-
-    private void OnEnter(GameObject linster, object _arg, object[] _params)
-    {
-        if (!_isOn)
-        {
-            OnHightLighted();
-        }
     }
 
     private void OnExit(GameObject linster, object _arg, object[] _params)
@@ -65,11 +70,19 @@ public class VRToggle : MonoBehaviour
         }
     }
 
+    private void OnEnter(GameObject linster, object _arg, object[] _params)
+    {
+        if (!_isOn)
+        {
+            OnHightLighted();
+        }
+    }
+
     private void OnDown(GameObject linster, object _arg, object[] _params)
     {
-        if (Group)
+        if (_group)
         {
-            Group.SetOn(this);
+            _group.SetOn(this);
         }
         else
         {

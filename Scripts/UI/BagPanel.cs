@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 using VRFrameWork;
 using VRTK;
 using DG.Tweening;
@@ -9,6 +8,7 @@ public class BagPanel : BaseUI
     private BagModule _bagModule;
     private Transform _gridLayoutGroup;
     private Transform _hintLayoutGroup;
+    private VRToggleGroup _vrToggleGroup;
     private int _totalPage=0;
     private int _currentPage=0;
     private float _xAxis=0f;
@@ -33,6 +33,7 @@ public class BagPanel : BaseUI
         _gridLayoutGroup = transform.Find("Mask/GridLayoutGroup");
         _hintLayoutGroup = transform.Find("Hint");
         _tipsTrans = transform.Find("Tips");
+        _vrToggleGroup = _hintLayoutGroup.GetComponent<VRToggleGroup>();
         _leftControllerEvents = VRTK_SDK_Bridge.GetControllerLeftHand(false).GetComponent<VRTK_ControllerEvents>();
         _rightControllerEvents = VRTK_SDK_Bridge.GetControllerRightHand(false).GetComponent<VRTK_ControllerEvents>();
     }
@@ -74,7 +75,7 @@ public class BagPanel : BaseUI
             }
             else
             {
-                if (_timeCounter > 0.5f)
+                if (_timeCounter > 0.7f)
                 {
                     MoveOnePage(_xAxis);
                     _timeCounter = 0;
@@ -106,6 +107,7 @@ public class BagPanel : BaseUI
         {
             _gridLayoutGroup.GetChild(i).GetComponent<GridItem>().OnScrollMove(_currentPage);
         }
+        _vrToggleGroup.SetOn(_currentPage);
     }
 
     private void IntilalGridItem(int toutalPage)
@@ -118,8 +120,15 @@ public class BagPanel : BaseUI
             GameObject prefab = Instantiate(Resources.Load<GameObject>("UI/GridItem"),_gridLayoutGroup,false);
             GridItem  gridItem= prefab.GetComponent<GridItem>();
             gridItem.Index = i;
-            gridItem.TipsTrans = _tipsTrans;
+            gridItem.Tips = _tipsTrans.GetComponent<Tips>();
         }
+        for(int i=0;i<_totalPage;++i)
+        {
+            GameObject prefab=Instantiate(Resources.Load<GameObject>("UI/HintToggle"), _hintLayoutGroup, false);
+            VRToggle vrToggle = prefab.GetComponent<VRToggle>();
+            vrToggle.SetIndex((i+1).ToString());
+        }
+        _vrToggleGroup.SetOn(0);
     }
 
     protected override void OnStart()
@@ -137,7 +146,5 @@ public class BagPanel : BaseUI
     {
         transform.localScale = Vector3.zero;
     }
-
-
 
 }

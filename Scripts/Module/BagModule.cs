@@ -9,8 +9,8 @@ public class BagModule : BaseModule
 {
     private class BagItem
     {
-        public int Index;
-        public int ID;
+        public int Index=-1;
+        public int ID=-1;
     }
 
     private const string BagConfigFile= "BagConfig.json";

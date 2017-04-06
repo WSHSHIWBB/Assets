@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using HighlightingSystem;
@@ -11,6 +10,7 @@ namespace VRTK.Highlighters
         public Color OutLineColor;
 
         private Highlighter _highLighter;
+        private bool _isDestroying = false;
 
         public override void Initialise(Color? color = default(Color?), Dictionary<string, object> options = null)
         {
@@ -68,6 +68,20 @@ namespace VRTK.Highlighters
             //_highLighter.ReinitMaterials();
         }
 
+        private void OnCollisionEnter(Collision collision)
+        {
+            if (collision.gameObject.name == "groud" && !_isDestroying)
+            {
+                StartCoroutine("DestroySelf", 1);
+            }
+        }
+
+        private IEnumerator DestroySelf(float delay)
+        {
+            _isDestroying = true;
+            yield return new WaitForSeconds(delay);
+            DestroyImmediate(gameObject);
+        }
 
     }
 }

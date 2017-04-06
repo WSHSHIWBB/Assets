@@ -1,27 +1,24 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using VRFrameWork;
 using VRTK;
 
-public class GridItem : VRTK_InteractableObject
+public class GridItem : MonoBehaviour
 {
     [HideInInspector]
     public int Index;
     [HideInInspector]
-    public Transform TipsTrans;
+    public Tips Tips;
 
     private ObjectsConfigModule _objectsConfigModule;
     private BagModule _bagModule;
     private ObjectInfo _objectInfo;
+    private float _grabDelay = 1f;
+    private float _grabTimer = 0;
 
-    protected override void Awake()
+    private void Awake()
     {
-        base.Awake();
         _objectsConfigModule = ModuleManager.Instance.Get<ObjectsConfigModule>();
         _bagModule = ModuleManager.Instance.Get<BagModule>();
-        
     }
 
     private void Start()
@@ -43,11 +40,11 @@ public class GridItem : VRTK_InteractableObject
 
     public void OnScrollMove(int currentPage)
     {
-        
-        if(transform.childCount>1)
+
+        if (transform.childCount > 1)
         {
             Transform GridItem3D = transform.GetChild(1);
-            if (Index>=currentPage*9&&Index<(currentPage+1)*9)
+            if (Index >= currentPage * 9 && Index < (currentPage + 1) * 9)
             {
                 GridItem3D.gameObject.SetActive(true);
             }
@@ -58,74 +55,80 @@ public class GridItem : VRTK_InteractableObject
         }
     }
 
-    public override void StartTouching(GameObject currentTouchingObject)
+    private void OnTriggerStay(Collider other)
     {
-        base.StartTouching(currentTouchingObject);
-        ShowTips(true);
-    }
-
-    public override void StopTouching(GameObject previousTouchingObject)
-    {
-        base.StopTouching(previousTouchingObject);
-        ShowTips(false);
-    }
-
-    public override void Grabbed(GameObject currentGrabbingObject)
-    {
-        base.Grabbed(currentGrabbingObject);
-        VRTK_InteractTouch touch = currentGrabbingObject.GetComponent<VRTK_InteractTouch>();
-        VRTK_InteractGrab grab = currentGrabbingObject.GetComponent<VRTK_InteractGrab>();
-        //StartCoroutine(ForceGrab(touch, grab));
-        ForceGrab(touch, grab);
-    }
-
-    private void  ForceGrab(VRTK_InteractTouch touch, VRTK_InteractGrab grab)
-    {
-        //yield return null;
-        if (touch && grab)
+        if (other.CompareTag("GameController"))
         {
-            string Name = _objectInfo.EnglishName;
-            GameObject prefab = Instantiate(Resources.Load<GameObject>("Prefabs/LabObjects/"+Name));
-            grab.ForceRelease();
-            touch.ForceStopTouching();
-            touch.ForceTouch(prefab);
-            grab.AttemptGrab();
+            ShowTips();
+            GrabObject(other);
         }
     }
 
-    public override void Ungrabbed(GameObject previousGrabbingObject)
+    private void GrabObject(Collider other)
     {
-        base.Ungrabbed(previousGrabbingObject);
-        
+        if(_objectInfo==null)
+        {
+            return;
+        }
+
+        VRTK_InteractGrab grab = (other.GetComponent<VRTK_InteractGrab>() ? other.GetComponent<VRTK_InteractGrab>() : other.GetComponentInParent<VRTK_InteractGrab>());
+        if(grab && grab.GetGrabbedObject()==null && grab.gameObject.GetComponent<VRTK_ControllerEvents>().grabPressed && Time.time >= _grabTimer)
+        {
+            string Name = _objectInfo.EnglishName;
+            VRTK_InteractTouch touch = grab.gameObject.GetComponent<VRTK_InteractTouch>();
+            GameObject prefab = Instantiate(Resources.Load<GameObject>("Prefabs/LabObjects/" + Name),null,false);
+            if(prefab==null)
+            {
+                Debug.LogError("The labObjects of name: " + Name + " is null!");
+                return;
+            }
+
+            touch.ForceTouch(prefab);
+            grab.AttemptGrab();
+            _grabTimer = Time.time + _grabDelay;
+        }
     }
 
-    private void ShowTips(bool isShow)
+    private void ShowTips()
     {
-        if(!TipsTrans)
+        if (!Tips.gameObject.activeInHierarchy)
+        {
+            SetTips();
+            Tips.RefreshFrame(Time.frameCount);
+        }
+        else
+        {
+            if (!Tips.Judge1Frame(Time.frameCount))
+            {
+                SetTips();
+            }
+            Tips.RefreshFrame(Time.frameCount);
+        }
+    }
+
+    private void SetTips()
+    {
+        if (!Tips)
         {
             Debug.Log("Tips is null!");
             return;
         }
-        if(transform.childCount<2)
+        if (transform.childCount < 2)
         {
+            Debug.Log("ChildCout < 2!");
             return;
         }
-        if(_objectInfo==null)
+        if (_objectInfo == null)
         {
             Debug.Log("ObjectInfo is null!");
+            return;
         }
-        if (isShow)
-        {
-            TipsTrans.gameObject.SetActive(true);
-            Tips tips = TipsTrans.GetComponent<Tips>();
-            string describ = _objectInfo.Description;
-            describ = System.Text.RegularExpressions.Regex.Replace(describ, @"(\w{6})","$0\n");
-            tips.SetTips(transform.position,describ, Index % 9);
-        }
-        else
-        {
-            TipsTrans.gameObject.SetActive(false);
-        }
+
+        Tips.gameObject.SetActive(true);
+        string describ = _objectInfo.Description;
+        describ = System.Text.RegularExpressions.Regex.Replace(describ, @"(\w{6})", "$0\n");
+        Tips.SetTips(transform.position, describ, Index % 9);
+        Tips.currentShow = transform;
     }
 
 
